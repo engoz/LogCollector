@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/base.xml"/>
+    <springProperty name="appName" source="spring.application.name"/>
+    <appender name="stash" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
+        <keepAliveDuration>5 minutes</keepAliveDuration>
+        <reconnectionDelay>10 second</reconnectionDelay>
+        <waitStrategyType>sleeping</waitStrategyType>
+        <remoteHost>logstash</remoteHost>
+        <port>10000</port>
+        <!-- encoder is required -->
+        <encoder chartset="UTF-8" class="net.logstash.logback.encoder.LogstashEncoder">
+            <includeContext>false</includeContext>
+            <includeMdc>false</includeMdc>
+            <timestampPattern>[UNIX_TIMESTAMP_AS_NUMBER]</timestampPattern>
+            <customFields>{"appname":"${appName}"}</customFields>
+            <fieldNames>
+                <version>[ignore]</version>
+                <thread>[ignore]</thread>
+                <logger>[ignore]</logger>
+                <version>[ignore]</version>
+                <levelValue>[ignore]</levelValue>
+                <timestamp>timestamp</timestamp>
+                <level>level</level>
+                <message>message</message>
+            </fieldNames>
+        </encoder>
+    </appender>
+
+    <appender name="stdout" class="ch.qos.logback.core.ConsoleAppender">
+        <!-- encoders are assigned the type
+             ch.qos.logback.classic.encoder.PatternLayoutEncoder by default -->
+        <encoder>
+            <charset>UTF-8</charset>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %highlight(%-5level) %cyan(%logger{35}) - %msg %n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="file" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs\logFile.html</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- daily rollover -->
+            <fileNamePattern>logs\logFile.%d{yyyy-MM-dd}.%i.html</fileNamePattern>
+            <timeBasedFileNamingAndTriggeringPolicy
+                    class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+                <!-- or whenever the file size reaches 50MB -->
+                <maxFileSize>2MB</maxFileSize>
+            </timeBasedFileNamingAndTriggeringPolicy>
+            <!-- keep 30 days' worth of history -->
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+        <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
+            <charset>UTF-8</charset>
+            <layout class="ch.qos.logback.classic.html.HTMLLayout">
+                <pattern>%d{HH:mm:ss.SSS}%thread%level%logger%line%msg</pattern>
+            </layout>
+        </encoder>
+    </appender>
+
+    <root level="INFO">
+     <!--   <appender-ref ref="stdout" /> -->
+        <appender-ref ref="file" />
+        <appender-ref ref="stash"/>
+    </root>
+</configuration>

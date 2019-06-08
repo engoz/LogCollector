@@ -1,0 +1,14 @@
+*.iml
+*.ipr
+*.iws
+.classpath
+.project
+.eclipse
+.myeclipse
+.mymetadata
+.settings
+Thumbs.db
+target
+.idea
+data
+logs

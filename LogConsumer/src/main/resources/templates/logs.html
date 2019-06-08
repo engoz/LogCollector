@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="ISO-8859-1">
+    <title>Home</title>
+    <link href="/webjars/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <script src="/webjars/jquery/jquery.min.js"></script>
+    <script src="/webjars/sockjs-client/sockjs.min.js"></script>
+    <script src="/webjars/stomp-websocket/stomp.min.js"></script>
+    <script
+            src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment.min.js"></script>
+    <script
+            src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.2/Chart.min.js"></script>
+    <script type="text/javascript">
+        var stompClient;
+
+        window.chartColors = {
+            red: 'rgb(255, 99, 132)',
+            orange: 'rgb(255, 159, 64)',
+            yellow: 'rgb(255, 205, 86)',
+            green: 'rgb(75, 192, 192)',
+            blue: 'rgb(54, 162, 235)',
+            purple: 'rgb(153, 102, 255)',
+            grey: 'rgb(201, 203, 207)'
+        };
+
+        /* Chart Configuration */
+        var config = {
+            type : 'line',
+            data : {
+                labels : [],
+                labels: [],
+                datasets: [{
+                    label: "ISTANBUL",
+                    backgroundColor: window.chartColors.red,
+                    borderColor: window.chartColors.red,
+                    fill: false,
+                    data: []
+                }, {
+                    label: "MOSKOW",
+                    backgroundColor: window.chartColors.blue,
+                    borderColor: window.chartColors.blue,
+                    fill: false,
+                    data: []
+                }, {
+                    label: "TOKYO",
+                    backgroundColor: window.chartColors.green,
+                    borderColor: window.chartColors.green,
+                    fill: false,
+                    data: []
+                }, {
+                    label: "BEIJING",
+                    backgroundColor: window.chartColors.orange,
+                    borderColor: window.chartColors.orange,
+                    fill: false,
+                    data: []
+                },
+                    {
+                        label: "LONDON",
+                        backgroundColor: window.chartColors.yellow,
+                        borderColor: window.chartColors.yellow,
+                        fill: false,
+                        data: []
+                    }]
+            },
+            options : {
+                responsive : true,
+                title : {
+                    display : true,
+                    text : 'Logs'
+                },
+                tooltips : {
+                    mode : 'index',
+                    intersect : false
+                },
+                hover : {
+                    mode : 'nearest',
+                    intersect : true
+                },
+                scales : {
+                    xAxes : [ {
+                        display : true,
+                        type : 'time',
+                        time : {
+                            unit: 'minute',
+                            displayFormats : {
+                                quarter : 'h:mm:ss'
+                            }
+                        },
+                        scaleLabel : {
+                            display : true,
+                            labelString : 'Time'
+                        }
+                    } ],
+                    yAxes : [ {
+                        display : true,
+                        scaleLabel : {
+                            display : true,
+                            labelString : 'Value'
+                        }
+                    } ]
+                }
+            }
+        };
+
+        /* Document Ready Event */
+        $(document).ready(function() {
+
+            var ctx = document.getElementById('lineChart').getContext('2d');
+            window.myLine = new Chart(ctx, config);
+
+            /* Configuring WebSocket on Client Side */
+            var socket = new SockJS('/live-logs');
+            stompClient = Stomp.over(socket);
+            stompClient.connect({}, function(frame) {
+                stompClient.subscribe('/topic/citylogs', function(logsdata){
+               // $('#citylogs').text(logsdata.body);
+
+                    var jsonObj = JSON.parse(logsdata.body);
+                    var objKey = jsonObj.city;
+
+                    /* Push new data On X-Axis of Chart */
+                    config.data.labels.push(new Date());
+                    /* Push new data on Y-Axis of chart */
+                    config.data.datasets.forEach(function(dataset) {
+                        if(objKey !== undefined && objKey.toUpperCase() == dataset.label) {
+                            dataset.data.push(jsonObj.logCount);
+                        }
+                    });
+                    window.myLine.update();
+                });
+            });
+
+        });
+    </script>
+</head>
+<body>
+<div class="alert alert-danger" role="alert" style="width:300px;margin-left:40%;margin-top:10px;">
+    <p class="text-center">Current Logs Dashboard <b id="citylogs"></b></p>
+</div>
+<div class="model">
+    <div class="modal-dialog" style="width:80%;height:auto">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">City Logs</h5>
+            </div>
+            <div class="model-body">
+                <div class="container" style="width:80%">
+                    <canvas id="lineChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

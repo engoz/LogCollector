@@ -1,0 +1,125 @@
+version: '2'
+services:
+  zookeeper:
+    image: wurstmeister/zookeeper
+    ports:
+      - "2181:2181"
+    container_name: zookeeper
+  kafka:
+    image: wurstmeister/kafka
+    ports:
+    - "9092:9092"
+    expose:
+    - "9093"
+    environment:
+      KAFKA_ADVERTISED_LISTENERS: INSIDE://kafka:9093,OUTSIDE://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
+      KAFKA_LISTENERS: INSIDE://0.0.0.0:9093,OUTSIDE://0.0.0.0:9092
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
+    links:
+      - zookeeper
+    depends_on:
+      - zookeeper
+    container_name: kafka
+  logstash:
+    image: docker.elastic.co/logstash/logstash:6.2.4
+    ports:
+      - "10000:10000"
+    links:
+      - kafka
+    volumes:
+      - ./logstash_settings/:/usr/share/logstash/config/
+      - ./logstash_pipeline/:/usr/share/logstash/pipeline/
+    container_name: logstash
+  mongodb:
+    container_name: some-mongo
+    image: mongo:3.6
+    environment:
+      - MONGODB_DB_HOST = mongo
+      - MONGODB_DB_NAME = logsdb
+      - MONGO_DATA_DIR=/data/db
+      - MONGO_LOG_DIR=/dev/null
+    volumes:
+      - ./data/db:/data/db
+    ports:
+        - 27017:27017
+    command: mongod --smallfiles --logpath=/dev/null
+
+  log_istanbul:
+    build:
+      context: ./LogCreator/
+      dockerfile: Dockerfile
+    image: istanbul_applogs:0.1
+    depends_on:
+      - logstash
+    ports:
+      - "8081:8081"
+    environment:
+      - "SPRING_PROFILES_ACTIVE=istanbul"
+    container_name: istanbul
+
+  log_moskow:
+    build:
+      context: ./LogCreator/
+      dockerfile: Dockerfile
+    image: moskow_applogs:0.1
+    depends_on:
+      - logstash
+    ports:
+      - "8082:8082"
+    environment:
+      - "SPRING_PROFILES_ACTIVE=moskov"
+    container_name: moskow
+
+  log_london:
+    build:
+      context: ./LogCreator/
+      dockerfile: Dockerfile
+    image: london_applogs:0.1
+    depends_on:
+      - logstash
+    ports:
+      - "8083:8083"
+    environment:
+      - "SPRING_PROFILES_ACTIVE=london"
+    container_name: london
+
+  log_beijing:
+    build:
+      context: ./LogCreator/
+      dockerfile: Dockerfile
+    image: beijing_applogs:0.1
+    depends_on:
+      - logstash
+    ports:
+      - "8084:8084"
+    environment:
+      - "SPRING_PROFILES_ACTIVE=beijing"
+    container_name: beijing
+
+  log_tokyo:
+    build:
+      context: ./LogCreator/
+      dockerfile: Dockerfile
+    image: tokyo_applogs:0.1
+    depends_on:
+      - logstash
+    ports:
+      - "8085:8085"
+    environment:
+      - "SPRING_PROFILES_ACTIVE=tokyo"
+    container_name: tokyo
+
+  log_chart:
+    build:
+      context: ./LogConsumer/
+      dockerfile: Dockerfile
+    image: logchart:0.1
+    depends_on:
+      - logstash
+    ports:
+      - "8080:8080"
+    expose:
+      - "8080"  
+    container_name: logChart
